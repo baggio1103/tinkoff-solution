@@ -1,0 +1,60 @@
+---
+stages:
+  - test
+  - perf
+
+.docker-variables:
+  variables:
+    DOCKER_HOST: tcp://docker:2376/
+    DOCKER_TLS_CERTDIR: "/certs"
+    DOCKER_TLS_VERIFY: 0
+    DOCKER_CERT_PATH: "$DOCKER_TLS_CERTDIR/client"
+
+test:
+  image: cr.yandex/crp9q9dbm5n3ipl1neu3/docker:20.10.16
+  stage: test
+  services:
+    - name: docker:20.10.16-dind
+  extends:
+    - .docker-variables
+  before_script:
+    - until docker info; do sleep 1; done
+  script:
+    - echo "Starting infrastructure in the background"
+    - docker-compose up -d kafka postgres
+    - echo "Waiting for infrastructure to be up and running"
+    - sleep 30
+    - echo "Starting service in the background"
+    - docker-compose up --build --no-deps -d service
+    - docker-compose ps
+    - echo "Give extra time for JVM startup"
+    - sleep 20
+    - echo "Starting checker execution"
+    - docker-compose up --no-deps checker
+    - echo "Checking application logs"
+    - docker-compose logs service
+  interruptible: true
+
+perf-test:
+  stage: perf
+  image: cr.yandex/crp9q9dbm5n3ipl1neu3/docker:20.10.16
+  services:
+    - name: docker:20.10.16-dind
+  extends:
+    - .docker-variables
+  before_script:
+    - until docker info; do sleep 1; done
+  script:
+    - echo "Starting infrastructure in the background"
+    - docker-compose up --build -d kafka postgres
+    - echo "Waiting for infrastructure to be up and running"
+    - sleep 30
+    - echo "Starting service in the background"
+    - docker-compose up --build --no-deps -d service
+    - docker-compose ps
+    - echo "Give extra time for JVM startup"
+    - sleep 20
+    - echo "Starting perf-tester execution"
+    - docker-compose up --no-deps perf-tester
+  when: manual
+  allow_failure: true
