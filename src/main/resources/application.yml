@@ -1,0 +1,23 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:tinkoff}
+    username: ${DB_USER:baggio}
+    password: ${DB_PASSWORD:baggio}
+    hikari:
+      idle-timeout: 300000
+      connection-test-query: SELECT 1
+  jpa:
+    hibernate:
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+#        show_sql: true
+#        use_sql_comments: true
+#        format_sql: true
+  kafka:
+    bootstrap-servers: ${KAFKA_HOST:localhost}:${KAFKA_PORT:9092}
+
+topicName: ${CURRENCY_KAFKA_TOPIC_NAME:currency-rates}
